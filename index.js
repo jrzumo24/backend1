@@ -5,18 +5,15 @@ app.use(express.json())
 const cors = require('cors')
 app.use(cors())
 app.use(express.static('dist'))
-const Note = require ('./models/note')
-
+const Note = require('./models/note')
 
 const requestLogger = (request, response, next) => {
-    console.log('Method:', request.method);
-    console.log('Path:', request.path);
-    console.log('Body:',request.body);
-    console.log('-----------------------------------');
+    console.log('Method:', request.method)
+    console.log('Path:', request.path)
+    console.log('Body:', request.body)
+    console.log('-----------------------------------')
     next()
-    
 }
-
 app.use(requestLogger)
 
 app.get('/api/notes', (request, response) => {
@@ -27,80 +24,73 @@ app.get('/api/notes', (request, response) => {
 
 app.get('/api/notes/:id', (request, response, next) => {
     Note.findById(request.params.id)
-    .then(note => {
-        if (note) {
-            response.json(note)
-        }
-        else {
-            response.status(404).end()
-        }
-    })
-    .catch(error => next(error))
+        .then(note => {
+            if (note) {
+                response.json(note)
+            } else {
+                response.status(404).end()
+            }
+        })
+        .catch(error => next(error))
 })
 
-app.delete('/api/notes/:id', (request, response) => { 
+app.delete('/api/notes/:id', (request, response, next) => {
     Note.findByIdAndDelete(request.params.id)
-    .then(result => {
-        response.status(204).end()
-    })
-    .catch(error=> next(error))
+        .then(() => {
+            response.status(204).end()
+        })
+        .catch(error => next(error))
 })
 
-app.post('/api/notes', (request, response) => { 
+app.post('/api/notes', (request, response, next) => {
     const body = request.body
-    if (body.content){
+
+    if (!body.content) {
+        return response.status(400).json({ error: 'content is missing' })
+    }
+
     const note = new Note({
         content: body.content,
         important: body.important
     })
-    note.save().then(x => {
-        response.json(x)
-    })
-    }
-    else {
-        response.status(400).json({error: 'content is missing'})
-    }
 
+    note.save()
+        .then(savedNote => response.json(savedNote))
+        .catch(error => next(error))
 })
 
-app.put('/api/notes', (request, response) => {
-    const body=request.body
-    const note ={
+app.put('/api/notes/:id', (request, response, next) => {
+    const body = request.body
+
+    const newNote = {
         content: body.content,
         important: body.important
     }
-    Note.findByIdAndUpdate(request.params.id, note, {new:true})
-    .then( note2=>{
-        response.json(note2)
-    })
-    .catch(error => next(error))
+
+    Note.findByIdAndUpdate(request.params.id, newNote, { new: true })
+        .then(updated => {
+            response.json(updated)
+        })
+        .catch(error => next(error))
 })
 
-const badPath = (request, response, next) => {
-    response.status(404).send({error: 'Ruta desconocida'})
-}
 
+const badPath = (request, response) => {
+    response.status(404).send({ error: 'Ruta desconocida' })
+}
 app.use(badPath)
 
 const errorHandler = (error, request, response, next) => {
-    console.log('ERROR: ',error.message);
+    console.log('ERROR:', error.message)
+
     if (error.name === "CastError") {
-    return response.status(400).send({error:'id not found'})
+        return response.status(400).send({ error: 'id not found' })
     }
     next(error)
-
 }
 app.use(errorHandler)
 
-const PORT = process.env.PORT 
-
-app.listen(PORT, ()=> {
-    console.log(`Server running in port ${PORT}`);
+const PORT = process.env.PORT
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
 })
-
-
-
-
-
-
-
