@@ -63,6 +63,19 @@ app.post('/api/notes', (request, response) => {
 
 })
 
+app.put('/api/notes', (request, response) => {
+    const body=request.body
+    const note ={
+        content: body.content,
+        important: body.important
+    }
+    Note.findByIdAndUpdate(request.params.id, note, {new:true})
+    .then( note2=>{
+        response.json(note2)
+    })
+    .catch(error => next(error))
+})
+
 const badPath = (request, response, next) => {
     response.status(404).send({error: 'Ruta desconocida'})
 }
